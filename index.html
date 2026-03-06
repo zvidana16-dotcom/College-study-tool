@@ -1,0 +1,1033 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Study Tutor</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f0f4f8; height: 100vh;
+      display: flex; flex-direction: column; overflow: hidden;
+    }
+
+    /* HEADER */
+    .header {
+      background: #1e3a5f; color: white;
+      padding: 0 20px; height: 58px;
+      display: flex; align-items: center; justify-content: space-between;
+      flex-shrink: 0; box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+    }
+    .header-left { display: flex; align-items: center; gap: 12px; }
+    .header-logo {
+      width: 36px; height: 36px; background: #3b82f6;
+      border-radius: 10px; display: flex; align-items: center;
+      justify-content: center; font-size: 18px; font-weight: 700;
+    }
+    .header-title { font-size: 17px; font-weight: 700; }
+    .header-sub { font-size: 11px; color: #93c5fd; margin-top: 1px; }
+    .api-area { display: flex; align-items: center; gap: 8px; }
+    .api-input {
+      background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 8px; color: white; padding: 5px 10px;
+      font-size: 12px; width: 230px; outline: none;
+    }
+    .api-input::placeholder { color: rgba(255,255,255,0.4); }
+    .api-input:focus { border-color: #60a5fa; }
+    .api-dot { width: 8px; height: 8px; border-radius: 50%; background: #4b5563; flex-shrink:0; }
+    .api-dot.on { background: #34d399; box-shadow: 0 0 6px #34d39988; }
+
+    /* TABS */
+    .tab-bar {
+      background: white; border-bottom: 1px solid #e2e8f0;
+      display: flex; padding: 0 20px; flex-shrink: 0;
+    }
+    .tab {
+      padding: 12px 20px 10px; font-size: 13px; font-weight: 500;
+      color: #64748b; cursor: pointer; border-bottom: 2px solid transparent;
+      transition: all 0.15s; display: flex; align-items: center; gap: 6px;
+    }
+    .tab:hover { color: #1e3a5f; }
+    .tab.active { color: #1e3a5f; border-bottom-color: #2563eb; font-weight: 600; }
+    .tab-badge {
+      background: #10b981; color: white; font-size: 9px;
+      padding: 1px 5px; border-radius: 10px; font-weight: 700;
+    }
+
+    /* LAYOUT */
+    .content { flex: 1; overflow: hidden; display: flex; flex-direction: column; }
+
+    /* STUDY */
+    .chat-wrap { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+    .style-banner {
+      background: #ecfdf5; border-bottom: 1px solid #a7f3d0;
+      padding: 8px 20px; display: flex; align-items: center;
+      justify-content: space-between; font-size: 12px; color: #065f46; flex-shrink: 0;
+    }
+    .banner-left { display: flex; align-items: center; gap: 6px; }
+    .banner-clear {
+      background: none; border: none; cursor: pointer;
+      color: #6ee7b7; font-size: 13px; padding: 2px 8px; border-radius: 4px;
+    }
+    .banner-clear:hover { background: #d1fae5; color: #065f46; }
+
+    .messages {
+      flex: 1; overflow-y: auto; padding: 20px;
+      display: flex; flex-direction: column; gap: 16px;
+    }
+    .messages::-webkit-scrollbar { width: 5px; }
+    .messages::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+
+    .msg { display: flex; gap: 10px; max-width: 820px; align-self: flex-start; }
+    .msg.user { align-self: flex-end; flex-direction: row-reverse; }
+    .avatar {
+      width: 32px; height: 32px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px; flex-shrink: 0; margin-top: 2px;
+    }
+    .avatar.tutor { background: #1e3a5f; color: white; font-weight: 700; font-size: 11px; }
+    .avatar.user  { background: #2563eb; color: white; }
+    .bubble {
+      padding: 11px 15px; border-radius: 14px;
+      font-size: 14px; line-height: 1.6; max-width: 680px;
+    }
+    .bubble.tutor {
+      background: white; color: #1e293b;
+      border-radius: 4px 14px 14px 14px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    }
+    .bubble.user {
+      background: #2563eb; color: white;
+      border-radius: 14px 4px 14px 14px;
+    }
+    .bubble p { margin: 4px 0; }
+    .bubble h1,.bubble h2,.bubble h3 { margin: 10px 0 4px; font-size: 15px; }
+    .bubble ul,.bubble ol { padding-left: 18px; margin: 4px 0; }
+    .bubble li { margin: 2px 0; }
+    .bubble code {
+      background: #f1f5f9; border-radius: 4px;
+      padding: 1px 5px; font-size: 12.5px; font-family: 'SF Mono', monospace;
+    }
+    .bubble.user code { background: rgba(255,255,255,0.2); }
+    .bubble pre {
+      background: #1e293b; color: #e2e8f0; border-radius: 8px;
+      padding: 12px; margin: 8px 0; overflow-x: auto; font-size: 12.5px;
+    }
+    .bubble pre code { background: none; padding: 0; color: inherit; }
+    .bubble strong { font-weight: 600; }
+    .bubble hr { border: none; border-top: 1px solid #e2e8f0; margin: 8px 0; }
+    .bubble blockquote {
+      border-left: 3px solid #e2e8f0; padding-left: 12px;
+      color: #64748b; margin: 6px 0;
+    }
+
+    .typing { display: flex; gap: 5px; align-items: center; padding: 4px 0; }
+    .dot {
+      width: 7px; height: 7px; border-radius: 50%;
+      background: #94a3b8; animation: bounce 1.2s infinite;
+    }
+    .dot:nth-child(2) { animation-delay: 0.2s; }
+    .dot:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes bounce {
+      0%,80%,100% { transform: translateY(0); }
+      40% { transform: translateY(-5px); }
+    }
+
+    .input-area {
+      padding: 14px 20px; background: white;
+      border-top: 1px solid #e2e8f0;
+      display: flex; gap: 10px; align-items: flex-end; flex-shrink: 0;
+    }
+    .chat-input {
+      flex: 1; border: 1.5px solid #e2e8f0; border-radius: 12px;
+      padding: 10px 14px; font-size: 14px; font-family: inherit;
+      resize: none; outline: none; max-height: 120px;
+      line-height: 1.5; color: #1e293b; transition: border-color 0.15s;
+    }
+    .chat-input:focus { border-color: #2563eb; }
+    .chat-input::placeholder { color: #94a3b8; }
+    .send-btn {
+      background: #2563eb; color: white; border: none; border-radius: 10px;
+      width: 40px; height: 40px; display: flex; align-items: center;
+      justify-content: center; cursor: pointer; font-size: 16px; flex-shrink: 0;
+      transition: background 0.15s, transform 0.1s;
+    }
+    .send-btn:hover { background: #1d4ed8; }
+    .send-btn:active { transform: scale(0.95); }
+    .send-btn:disabled { background: #cbd5e1; cursor: not-allowed; }
+    .icon-btn {
+      background: none; border: 1px solid #e2e8f0; color: #94a3b8;
+      border-radius: 10px; width: 40px; height: 40px;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; font-size: 14px; transition: all 0.15s;
+    }
+    .icon-btn:hover { border-color: #cbd5e1; color: #64748b; }
+
+    /* EMPTY STATE */
+    .empty {
+      flex: 1; display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      color: #94a3b8; gap: 10px; padding: 40px;
+    }
+    .empty-icon { font-size: 44px; }
+    .empty-title { font-size: 16px; font-weight: 600; color: #475569; }
+    .empty-sub { font-size: 13px; color: #94a3b8; text-align: center; max-width: 300px; }
+    .chips { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-top: 8px; }
+    .chip {
+      background: white; border: 1px solid #e2e8f0; border-radius: 20px;
+      padding: 7px 15px; font-size: 12.5px; color: #475569;
+      cursor: pointer; transition: all 0.15s;
+    }
+    .chip:hover { border-color: #2563eb; color: #2563eb; background: #eff6ff; }
+
+    /* PROFESSOR STYLE TAB */
+    .prof-scroll {
+      flex: 1; overflow-y: auto; padding: 24px;
+      display: flex; flex-direction: column; gap: 20px;
+    }
+    .prof-scroll::-webkit-scrollbar { width: 5px; }
+    .prof-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+
+    .card {
+      background: white; border-radius: 14px; padding: 20px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.07);
+    }
+    .card-title {
+      font-size: 12px; font-weight: 700; color: #1e3a5f;
+      text-transform: uppercase; letter-spacing: 0.7px; margin-bottom: 14px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .pill {
+      padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600;
+    }
+    .pill.active { background: #d1fae5; color: #065f46; }
+    .pill.off    { background: #f1f5f9; color: #94a3b8; }
+
+    .drop-zone {
+      border: 2px dashed #cbd5e1; border-radius: 12px;
+      padding: 36px 20px; text-align: center;
+      cursor: pointer; transition: all 0.2s; color: #64748b;
+    }
+    .drop-zone:hover, .drop-zone.drag { border-color: #2563eb; background: #eff6ff; color: #2563eb; }
+    .drop-icon { font-size: 34px; margin-bottom: 8px; }
+    .drop-title { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
+    .drop-sub { font-size: 12px; color: #94a3b8; }
+
+    .preview-wrap { position: relative; display: inline-block; }
+    .preview-img {
+      max-width: 100%; max-height: 260px; border-radius: 10px;
+      border: 1px solid #e2e8f0; object-fit: contain;
+    }
+    .remove-btn {
+      position: absolute; top: -8px; right: -8px;
+      background: #ef4444; color: white; border: none; border-radius: 50%;
+      width: 22px; height: 22px; cursor: pointer; font-size: 12px;
+      display: flex; align-items: center; justify-content: center;
+    }
+
+    .field {
+      width: 100%; border: 1.5px solid #e2e8f0; border-radius: 10px;
+      padding: 10px 14px; font-size: 13px; font-family: inherit;
+      resize: vertical; outline: none; color: #1e293b;
+      transition: border-color 0.15s; min-height: 80px;
+    }
+    .field:focus { border-color: #2563eb; }
+    .field::placeholder { color: #94a3b8; }
+
+    .analyze-btn {
+      background: #1e3a5f; color: white; border: none; border-radius: 10px;
+      padding: 10px 22px; font-size: 14px; font-weight: 600;
+      cursor: pointer; transition: background 0.15s;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .analyze-btn:hover { background: #163055; }
+    .analyze-btn:disabled { background: #94a3b8; cursor: not-allowed; }
+
+    .style-edit {
+      width: 100%; background: #f8fafc;
+      border: 1.5px solid #2563eb; border-radius: 10px;
+      padding: 14px; font-size: 13px; font-family: inherit;
+      line-height: 1.7; color: #334155; min-height: 140px;
+      resize: vertical; outline: none;
+    }
+    .style-display {
+      background: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: 10px;
+      padding: 14px; font-size: 13px; line-height: 1.7; color: #334155;
+      white-space: pre-wrap; min-height: 80px;
+    }
+
+    .set-btn {
+      background: #10b981; color: white; border: none;
+      border-radius: 10px; padding: 9px 20px;
+      font-size: 13px; font-weight: 600; cursor: pointer;
+    }
+    .set-btn:hover { background: #059669; }
+    .ghost-btn {
+      background: none; border: 1px solid #e2e8f0; color: #64748b;
+      border-radius: 10px; padding: 9px 20px; font-size: 13px; cursor: pointer;
+    }
+    .ghost-btn:hover { border-color: #ef4444; color: #ef4444; }
+    .label-input {
+      border: 1.5px solid #e2e8f0; border-radius: 8px;
+      padding: 8px 12px; font-size: 13px; outline: none;
+      color: #334155; width: 180px; transition: border-color 0.15s;
+    }
+    .label-input:focus { border-color: #2563eb; }
+
+    .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+
+    .spinner {
+      width: 14px; height: 14px; border: 2px solid rgba(255,255,255,0.35);
+      border-top-color: white; border-radius: 50%;
+      animation: spin 0.7s linear infinite; flex-shrink: 0;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* GRADE CALCULATOR TAB */
+    .grade-scroll {
+      flex: 1; overflow-y: auto; padding: 24px;
+      display: flex; flex-direction: column; gap: 20px;
+    }
+    .grade-scroll::-webkit-scrollbar { width: 5px; }
+    .grade-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+
+    .img-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      gap: 12px; margin-top: 4px;
+    }
+    .img-thumb {
+      position: relative; border-radius: 10px; overflow: hidden;
+      border: 1.5px solid #e2e8f0; background: #f8fafc;
+      aspect-ratio: 4/3; cursor: pointer;
+    }
+    .img-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .img-thumb:hover .thumb-overlay { opacity: 1; }
+    .thumb-overlay {
+      position: absolute; inset: 0; background: rgba(0,0,0,0.45);
+      display: flex; align-items: center; justify-content: center;
+      opacity: 0; transition: opacity 0.15s;
+    }
+    .thumb-remove {
+      background: #ef4444; color: white; border: none; border-radius: 50%;
+      width: 26px; height: 26px; font-size: 12px; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .add-thumb {
+      border: 2px dashed #cbd5e1; border-radius: 10px; background: #f8fafc;
+      aspect-ratio: 4/3; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; cursor: pointer;
+      color: #94a3b8; font-size: 12px; gap: 4px; transition: all 0.15s;
+    }
+    .add-thumb:hover { border-color: #2563eb; color: #2563eb; background: #eff6ff; }
+    .add-thumb-icon { font-size: 24px; }
+
+    .grade-result {
+      background: white; border-radius: 14px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.07); overflow: hidden;
+    }
+    .grade-result-header {
+      background: #1e3a5f; color: white;
+      padding: 16px 20px; font-weight: 700; font-size: 15px;
+      display: flex; align-items: center; gap: 10px;
+    }
+    .grade-result-body {
+      padding: 20px; font-size: 14px; line-height: 1.7; color: #1e293b;
+    }
+    .grade-result-body h1,.grade-result-body h2,.grade-result-body h3 {
+      margin: 12px 0 6px; font-size: 15px; color: #1e3a5f;
+    }
+    .grade-result-body p { margin: 6px 0; }
+    .grade-result-body ul,.grade-result-body ol { padding-left: 20px; margin: 6px 0; }
+    .grade-result-body li { margin: 3px 0; }
+    .grade-result-body strong { font-weight: 600; }
+    .grade-result-body table {
+      width: 100%; border-collapse: collapse; margin: 10px 0;
+      font-size: 13px;
+    }
+    .grade-result-body th {
+      background: #f1f5f9; padding: 8px 12px; text-align: left;
+      font-weight: 600; border: 1px solid #e2e8f0; color: #475569;
+    }
+    .grade-result-body td {
+      padding: 7px 12px; border: 1px solid #e2e8f0; color: #1e293b;
+    }
+    .grade-result-body tr:nth-child(even) td { background: #f8fafc; }
+    .grade-result-body code {
+      background: #f1f5f9; border-radius: 4px;
+      padding: 1px 5px; font-size: 12.5px;
+    }
+
+    .grade-big {
+      display: flex; align-items: center; gap: 16px;
+      background: linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%);
+      border-radius: 14px; padding: 20px 24px; color: white; margin-bottom: 4px;
+    }
+    .grade-letter {
+      font-size: 52px; font-weight: 900; line-height: 1;
+      text-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    }
+    .grade-pct { font-size: 28px; font-weight: 700; opacity: 0.9; }
+    .grade-label { font-size: 13px; opacity: 0.7; margin-top: 2px; }
+    .grade-meta { font-size: 13px; opacity: 0.85; margin-top: 6px; }
+
+    .calc-btn {
+      background: linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%);
+      color: white; border: none; border-radius: 10px;
+      padding: 11px 26px; font-size: 14px; font-weight: 600;
+      cursor: pointer; display: flex; align-items: center; gap: 8px;
+      box-shadow: 0 2px 8px rgba(37,99,235,0.3); transition: opacity 0.15s;
+    }
+    .calc-btn:hover { opacity: 0.9; }
+    .calc-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .recalc-btn {
+      background: none; border: 1px solid #2563eb; color: #2563eb;
+      border-radius: 10px; padding: 8px 18px; font-size: 13px;
+      font-weight: 600; cursor: pointer; transition: all 0.15s;
+    }
+    .recalc-btn:hover { background: #eff6ff; }
+
+    .drop-zone-grade {
+      border: 2px dashed #cbd5e1; border-radius: 12px;
+      padding: 28px 20px; text-align: center;
+      cursor: pointer; transition: all 0.2s; color: #64748b;
+    }
+    .drop-zone-grade:hover, .drop-zone-grade.drag {
+      border-color: #2563eb; background: #eff6ff; color: #2563eb;
+    }
+    .drop-zone-grade .drop-icon { font-size: 32px; margin-bottom: 6px; }
+    .drop-zone-grade .drop-title { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
+    .drop-zone-grade .drop-sub { font-size: 12px; color: #94a3b8; }
+  </style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel">
+const { useState, useRef, useEffect } = React;
+
+const MODEL = "claude-sonnet-4-5-20250929";
+
+const SYSTEM_PROMPT = `You are a college-level STEM study tutor covering physics, calculus, and engineering. You are helpful, warm, and patient — but you keep responses short and focused by default. Think of yourself as a tutor sitting next to the student, not a textbook. Give just enough to move them forward, then pause and let them ask for more.
+
+## Covered subjects
+Physics, calculus (all levels), and engineering (statics, dynamics, circuits, fluids, materials, signals).
+
+## The most important rule: don't dump everything at once
+Students learn better through dialogue than through walls of text. Your default is to give a short, clear answer and then stop — leaving an obvious opening for the student to follow up.
+
+Length guide:
+- Concept questions → 3–6 sentences, then offer to go deeper
+- "What is X?" → One crisp definition + one analogy, then ask if they want an example
+- Practice problems → One problem at a time unless they ask for more
+- Formula sheets / study guides → Exception: create a complete, well-organized response
+
+Good example: "A derivative is the instantaneous rate of change — think of it like a speedometer reading rather than your total mileage. Want to see what that looks like on a graph?"
+
+Bad example: [Four paragraphs with limit definition, examples, common mistakes, and a practice problem all at once]
+
+## Modes
+
+### Concept explanation
+2–4 sentences of intuition. One concrete analogy. Then ask: "Want to see a worked example?" or "Should I show you the formal definition?"
+
+### Practice problems
+One problem at a time. After solving it: "Got it, or want me to walk through a step?" and "Want another — same level or harder?"
+
+Format:
+**Problem:** [Statement]
+**Step 1:** ...
+**Step 2:** ...
+**Answer:** [Final answer with units]
+**Key takeaway:** [One sentence]
+
+### Formula sheets / study guides
+Create a complete, organized reference covering all requested topics.
+
+## Tone
+- Correct mistakes gently — explain why, don't just give the answer
+- Brief acknowledgment when they get it right, then move on
+- Never say "obvious" or "simple"
+- If stuck: "Want a nudge, or should I walk through it?"`;
+
+const HINTS = [
+  "Explain what a derivative actually is",
+  "Give me a Newton's second law practice problem",
+  "What is Kirchhoff's voltage law?",
+  "Make me a formula sheet for calculus 2",
+  "Quiz me on statics — exam on Friday",
+  "How does integration by parts work?",
+];
+
+function md(text) {
+  try { return { __html: marked.parse(text) }; }
+  catch { return { __html: text }; }
+}
+
+async function callClaude(apiKey, messages, system) {
+  const res = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: {
+      "x-api-key": apiKey,
+      "anthropic-version": "2023-06-01",
+      "anthropic-dangerous-direct-browser-access": "true",
+      "content-type": "application/json",
+    },
+    body: JSON.stringify({ model: MODEL, max_tokens: 2048, system, messages }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err?.error?.message || `HTTP ${res.status}`);
+  }
+  const data = await res.json();
+  return data.content[0].text;
+}
+
+// ── App ──────────────────────────────────────────────────────────────
+function App() {
+  const [apiKey, setApiKey]     = useState(() => localStorage.getItem("st_key") || "");
+  const [tab, setTab]           = useState("study");
+  const [msgs, setMsgs]         = useState([]);
+  const [input, setInput]       = useState("");
+  const [busy, setBusy]         = useState(false);
+  const [style, setStyle]       = useState("");   // active professor style text
+  const [styleLabel, setStyleLabel] = useState("");
+  const endRef = useRef(null);
+
+  useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth" }); }, [msgs, busy]);
+
+  const saveKey = (k) => { setApiKey(k); localStorage.setItem("st_key", k); };
+
+  const send = async (text) => {
+    if (!text.trim() || busy) return;
+    if (!apiKey.trim()) { alert("Paste your Claude API key in the top-right field first."); return; }
+
+    const next = [...msgs, { role: "user", content: text }];
+    setMsgs(next); setInput(""); setBusy(true);
+
+    let system = SYSTEM_PROMPT;
+    if (style) {
+      system += `\n\n## Professor Style (active)\nApply these conventions to ALL responses — notation, step format, unit checks, diagrams, everything:\n\n${style}`;
+    }
+
+    try {
+      const reply = await callClaude(apiKey, next, system);
+      setMsgs([...next, { role: "assistant", content: reply }]);
+    } catch (e) {
+      setMsgs([...next, { role: "assistant", content: `⚠️ ${e.message}` }]);
+    } finally { setBusy(false); }
+  };
+
+  const onKey = (e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(input); } };
+
+  return (
+    <div style={{ display:"flex", flexDirection:"column", height:"100vh", overflow:"hidden" }}>
+
+      {/* Header */}
+      <div className="header">
+        <div className="header-left">
+          <div className="header-logo">S</div>
+          <div>
+            <div className="header-title">Study Tutor</div>
+            <div className="header-sub">Physics · Calculus · Engineering</div>
+          </div>
+        </div>
+        <div className="api-area">
+          <div className={`api-dot ${apiKey ? "on" : ""}`} title={apiKey ? "API key set" : "No API key"} />
+          <input
+            className="api-input" type="password"
+            placeholder="Paste your Claude API key here…"
+            value={apiKey} onChange={e => saveKey(e.target.value)}
+          />
+        </div>
+      </div>
+
+      {/* Tabs */}
+      <div className="tab-bar">
+        <div className={`tab ${tab==="study" ? "active" : ""}`} onClick={() => setTab("study")}>
+          💬 Study
+        </div>
+        <div className={`tab ${tab==="professor" ? "active" : ""}`} onClick={() => setTab("professor")}>
+          🎓 Professor Style
+          {style && <span className="tab-badge">ON</span>}
+        </div>
+        <div className={`tab ${tab==="grade" ? "active" : ""}`} onClick={() => setTab("grade")}>
+          📊 Grade Calculator
+        </div>
+      </div>
+
+      {/* Content */}
+      <div className="content">
+        {tab === "study"
+          ? <StudyTab
+              msgs={msgs} busy={busy} input={input} setInput={setInput}
+              onSend={() => send(input)} onHint={send} onKey={onKey}
+              onClear={() => setMsgs([])} style={style} styleLabel={styleLabel}
+              onClearStyle={() => { setStyle(""); setStyleLabel(""); }}
+              endRef={endRef}
+            />
+          : tab === "professor"
+          ? <ProfTab
+              apiKey={apiKey} activeStyle={style} activeLabel={styleLabel}
+              onActivate={(s, l) => { setStyle(s); setStyleLabel(l); setTab("study"); }}
+              onClear={() => { setStyle(""); setStyleLabel(""); }}
+            />
+          : <GradeTab apiKey={apiKey} />
+        }
+      </div>
+    </div>
+  );
+}
+
+// ── Study Tab ────────────────────────────────────────────────────────
+function StudyTab({ msgs, busy, input, setInput, onSend, onHint, onKey, onClear, style, styleLabel, onClearStyle, endRef }) {
+  const ref = useRef(null);
+  const resize = () => { const el = ref.current; if (el) { el.style.height = "auto"; el.style.height = Math.min(el.scrollHeight, 120) + "px"; } };
+
+  return (
+    <div className="chat-wrap">
+      {style && (
+        <div className="style-banner">
+          <div className="banner-left">
+            <span>✅</span>
+            <span><strong>Professor Style active</strong>{styleLabel ? ` — ${styleLabel}` : ""}</span>
+          </div>
+          <button className="banner-clear" onClick={onClearStyle}>✕ Clear</button>
+        </div>
+      )}
+      <div className="messages">
+        {msgs.length === 0
+          ? <EmptyState onHint={onHint} />
+          : msgs.map((m, i) => (
+              <div key={i} className={`msg ${m.role}`}>
+                <div className={`avatar ${m.role === "assistant" ? "tutor" : "user"}`}>
+                  {m.role === "assistant" ? "ST" : "👤"}
+                </div>
+                <div className={`bubble ${m.role === "assistant" ? "tutor" : "user"}`}
+                     dangerouslySetInnerHTML={md(m.content)} />
+              </div>
+            ))
+        }
+        {busy && (
+          <div className="msg">
+            <div className="avatar tutor">ST</div>
+            <div className="bubble tutor">
+              <div className="typing"><div className="dot"/><div className="dot"/><div className="dot"/></div>
+            </div>
+          </div>
+        )}
+        <div ref={endRef} />
+      </div>
+      <div className="input-area">
+        <button className="icon-btn" onClick={onClear} title="Clear chat">🗑</button>
+        <textarea ref={ref} className="chat-input" rows={1}
+          placeholder="Ask a question, request a practice problem, or ask for a formula sheet…"
+          value={input}
+          onChange={e => { setInput(e.target.value); resize(); }}
+          onKeyDown={onKey}
+        />
+        <button className="send-btn" onClick={onSend} disabled={!input.trim() || busy}>➤</button>
+      </div>
+    </div>
+  );
+}
+
+function EmptyState({ onHint }) {
+  return (
+    <div className="empty">
+      <div className="empty-icon">📐</div>
+      <div className="empty-title">What do you want to work on?</div>
+      <div className="empty-sub">Ask anything — or try one of these to get started:</div>
+      <div className="chips">
+        {HINTS.map((h, i) => <div key={i} className="chip" onClick={() => onHint(h)}>{h}</div>)}
+      </div>
+    </div>
+  );
+}
+
+// ── Professor Style Tab ──────────────────────────────────────────────
+function ProfTab({ apiKey, activeStyle, activeLabel, onActivate, onClear }) {
+  const [img, setImg]         = useState(null);   // { data, type, preview }
+  const [notes, setNotes]     = useState("");
+  const [extracted, setExtracted] = useState("");
+  const [editing, setEditing] = useState("");
+  const [label, setLabel]     = useState("");
+  const [analyzing, setAnalyzing] = useState(false);
+  const [drag, setDrag]       = useState(false);
+  const fileRef = useRef(null);
+
+  const loadFile = (file) => {
+    if (!file || !file.type.startsWith("image/")) { alert("Please upload an image file (JPG, PNG, etc.)"); return; }
+    const reader = new FileReader();
+    reader.onload = ev => {
+      const src = ev.target.result;
+      setImg({ data: src.split(",")[1], type: file.type, preview: src });
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const analyze = async () => {
+    if (!apiKey.trim()) { alert("Enter your API key first."); return; }
+    if (!img && !notes.trim()) { alert("Upload an image or add notes first."); return; }
+    setAnalyzing(true);
+    try {
+      const content = [];
+      if (img) content.push({ type:"image", source:{ type:"base64", media_type: img.type, data: img.data } });
+      content.push({ type:"text", text:
+        "Analyze this professor's example and extract a concise style guide for a student to follow.\n" +
+        (notes ? `Student notes: ${notes}\n\n` : "") +
+        "Identify:\n1. How steps are labeled/numbered\n2. Notation preferences (ΣF vs F_net, vector notation, etc.)\n" +
+        "3. How much intermediate work is shown\n4. Free body diagram conventions\n5. How units are checked\n" +
+        "6. Any preferred methods\n7. Lab report structure if relevant\n\nBe concise — this will be injected into a tutor's system prompt."
+      });
+
+      const res = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: {
+          "x-api-key": apiKey,
+          "anthropic-version": "2023-06-01",
+          "anthropic-dangerous-direct-browser-access": "true",
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({ model: MODEL, max_tokens: 1024, messages: [{ role:"user", content }] }),
+      });
+      if (!res.ok) { const e = await res.json(); throw new Error(e?.error?.message || `HTTP ${res.status}`); }
+      const style = (await res.json()).content[0].text;
+      setExtracted(style);
+      setEditing(style);
+    } catch (e) { alert("Analysis failed: " + e.message); }
+    finally { setAnalyzing(false); }
+  };
+
+  const activate = () => {
+    if (!editing.trim()) { alert("No style to set — analyze an example first."); return; }
+    onActivate(editing.trim(), label || "Custom style");
+  };
+
+  const clearAll = () => {
+    setImg(null); setNotes(""); setExtracted(""); setEditing(""); setLabel("");
+    onClear();
+  };
+
+  return (
+    <div className="prof-scroll">
+
+      {/* Status card */}
+      <div className="card" style={{ display:"flex", alignItems:"center", justifyContent:"space-between" }}>
+        <div style={{ flex:1, marginRight:16 }}>
+          <div style={{ fontWeight:700, fontSize:15, color:"#1e3a5f", marginBottom:4 }}>Professor Style</div>
+          <div style={{ fontSize:13, color:"#64748b", lineHeight:1.5 }}>
+            Upload a photo or screenshot of your professor's solved work — homework, lecture notes, a lab report example.
+            The tutor will match their exact format in every response.
+          </div>
+        </div>
+        <div className={`pill ${activeStyle ? "active" : "off"}`}>
+          {activeStyle ? "✓ Active" : "Not set"}
+        </div>
+      </div>
+
+      {/* Upload */}
+      <div className="card">
+        <div className="card-title">📎 Upload Example</div>
+        {!img
+          ? <div
+              className={`drop-zone ${drag ? "drag" : ""}`}
+              onClick={() => fileRef.current?.click()}
+              onDragOver={e => { e.preventDefault(); setDrag(true); }}
+              onDragLeave={() => setDrag(false)}
+              onDrop={e => { e.preventDefault(); setDrag(false); loadFile(e.dataTransfer.files[0]); }}
+            >
+              <div className="drop-icon">🖼</div>
+              <div className="drop-title">Drop an image here, or click to browse</div>
+              <div className="drop-sub">JPG · PNG · Screenshots of class notes, solved problems, diagrams</div>
+              <input ref={fileRef} type="file" accept="image/*" style={{ display:"none" }}
+                     onChange={e => loadFile(e.target.files[0])} />
+            </div>
+          : <div className="preview-wrap">
+              <img className="preview-img" src={img.preview} alt="Upload" />
+              <button className="remove-btn" onClick={() => setImg(null)}>✕</button>
+            </div>
+        }
+      </div>
+
+      {/* Notes */}
+      <div className="card">
+        <div className="card-title">📝 Notes (optional)</div>
+        <textarea className="field"
+          placeholder={"Describe what matters. For example:\n• \"He always writes Given / Find / Solution\"\n• \"She checks units at the end of every problem\"\n• \"Lab reports need: Abstract, Data Table, Calculations, Conclusion\""}
+          value={notes} onChange={e => setNotes(e.target.value)}
+        />
+      </div>
+
+      {/* Analyze button */}
+      <div>
+        <button className="analyze-btn" onClick={analyze}
+                disabled={analyzing || (!img && !notes.trim())}>
+          {analyzing
+            ? <><div className="spinner" />Analyzing…</>
+            : <><span>🔍</span> Analyze Style</>
+          }
+        </button>
+      </div>
+
+      {/* Result */}
+      {extracted && (
+        <div className="card">
+          <div className="card-title">
+            ✨ Extracted Style Guide
+            <span style={{ fontWeight:400, fontSize:11, color:"#94a3b8", textTransform:"none", letterSpacing:0 }}>
+              — edit if anything's off
+            </span>
+          </div>
+          <textarea className="style-edit" value={editing} onChange={e => setEditing(e.target.value)} />
+          <div className="row" style={{ marginTop:14 }}>
+            <input className="label-input" placeholder="Label (e.g. Prof. Smith)"
+                   value={label} onChange={e => setLabel(e.target.value)} />
+            <button className="set-btn" onClick={activate}>✓ Set as Active Style</button>
+            <button className="ghost-btn" onClick={clearAll}>Clear All</button>
+          </div>
+        </div>
+      )}
+
+      {/* Already active, no new extraction */}
+      {activeStyle && !extracted && (
+        <div className="card">
+          <div className="card-title">✅ Active Style</div>
+          <div className="style-display">{activeStyle}</div>
+          <div style={{ marginTop:12 }}>
+            <button className="ghost-btn" onClick={clearAll}>Remove Style</button>
+          </div>
+        </div>
+      )}
+
+    </div>
+  );
+}
+
+// ── Grade Calculator Tab ─────────────────────────────────────────────
+function GradeTab({ apiKey }) {
+  const [imgs, setImgs]           = useState([]);   // [{data, type, preview}]
+  const [notes, setNotes]         = useState("");
+  const [result, setResult]       = useState(null); // { raw, letter, pct, status }
+  const [calculating, setCalc]    = useState(false);
+  const [drag, setDrag]           = useState(false);
+  const fileRef = useRef(null);
+
+  const loadFiles = (files) => {
+    Array.from(files).forEach(file => {
+      if (!file.type.startsWith("image/")) return;
+      const reader = new FileReader();
+      reader.onload = ev => {
+        const src = ev.target.result;
+        setImgs(prev => [...prev, { data: src.split(",")[1], type: file.type, preview: src }]);
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const removeImg = (idx) => setImgs(prev => prev.filter((_, i) => i !== idx));
+
+  const calculate = async () => {
+    if (!apiKey.trim()) { alert("Enter your API key first."); return; }
+    if (imgs.length === 0) { alert("Upload at least one gradebook screenshot."); return; }
+    setCalc(true); setResult(null);
+    try {
+      const content = [];
+      imgs.forEach(img => content.push({
+        type: "image",
+        source: { type: "base64", media_type: img.type, data: img.data }
+      }));
+      content.push({ type: "text", text:
+        `You are a grade calculator. The student has uploaded ${imgs.length} gradebook screenshot(s).
+
+${notes ? `Student's notes about grading: ${notes}\n\n` : ""}
+
+Your job:
+1. Extract every graded item visible in the screenshots — name, points earned, points possible (or percentage).
+2. Identify any category weights if shown (e.g., "Homework 20%, Exams 50%, Labs 30%").
+3. Calculate the student's current grade using the correct method:
+   - If weights are shown: calculate weighted average by category
+   - If no weights: calculate simple points earned / points possible
+4. Clearly mark any assignments that are blank, missing, or not yet graded — DO NOT include these in the calculation.
+5. Identify what letter grade the current percentage corresponds to using a standard scale (A ≥90, B ≥80, C ≥70, D ≥60, F below 60) unless a different scale is visible.
+
+Format your response as follows:
+
+## 📊 Grade Summary
+Start with one line: **Current Grade: [LETTER] ([XX.X]%)**
+Then 1–2 sentences of context (e.g., "Based on X graded items out of Y total. Z assignments are not yet graded.")
+
+## 📋 Breakdown by Category (if weighted)
+Table or list showing each category, your score in it, and its weighted contribution.
+
+## 📝 All Graded Items
+A clean table:
+| Assignment | Score | Points | % |
+(include all graded items, skip blanks/missing)
+
+## ❓ Missing / Ungraded
+List any assignments that appear in the gradebook but have no score yet.
+
+## 💡 What You Need
+Short section: what score on remaining work would bring the grade up or keep it where it is. Be specific if possible.
+
+Be thorough but clear. If screenshots overlap or show the same course from different views, reconcile them intelligently.`
+      });
+
+      const res = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: {
+          "x-api-key": apiKey,
+          "anthropic-version": "2023-06-01",
+          "anthropic-dangerous-direct-browser-access": "true",
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({ model: MODEL, max_tokens: 2048, messages: [{ role: "user", content }] }),
+      });
+      if (!res.ok) { const e = await res.json(); throw new Error(e?.error?.message || `HTTP ${res.status}`); }
+      const raw = (await res.json()).content[0].text;
+
+      // Extract letter + percentage from the raw text for the hero card
+      const matchPct = raw.match(/(\d{1,3}(?:\.\d+)?)\s*%/);
+      const matchLetter = raw.match(/\b([ABCDF][+-]?)\b/);
+      const pct = matchPct ? parseFloat(matchPct[1]) : null;
+      const letter = matchLetter ? matchLetter[1] : "?";
+      const gradeColor = pct === null ? "#64748b"
+        : pct >= 90 ? "#10b981"
+        : pct >= 80 ? "#3b82f6"
+        : pct >= 70 ? "#f59e0b"
+        : pct >= 60 ? "#f97316"
+        : "#ef4444";
+
+      setResult({ raw, letter, pct, gradeColor });
+    } catch(e) { alert("Calculation failed: " + e.message); }
+    finally { setCalc(false); }
+  };
+
+  const reset = () => { setImgs([]); setNotes(""); setResult(null); };
+
+  return (
+    <div className="grade-scroll">
+
+      {/* Intro card */}
+      <div className="card" style={{ display:"flex", alignItems:"flex-start", gap:16 }}>
+        <div style={{ fontSize:36 }}>📊</div>
+        <div>
+          <div style={{ fontWeight:700, fontSize:15, color:"#1e3a5f", marginBottom:4 }}>Grade Calculator</div>
+          <div style={{ fontSize:13, color:"#64748b", lineHeight:1.6 }}>
+            Upload screenshots of your gradebook — as many as you need. Claude will read every score,
+            apply any category weights, and tell you exactly where your grade stands right now.
+            It also flags missing assignments and tells you what you need on upcoming work.
+          </div>
+        </div>
+      </div>
+
+      {/* Upload */}
+      <div className="card">
+        <div className="card-title">📎 Gradebook Screenshots
+          <span style={{ fontWeight:400, fontSize:11, color:"#94a3b8", textTransform:"none", letterSpacing:0 }}>
+            — {imgs.length === 0 ? "none yet" : `${imgs.length} uploaded`}
+          </span>
+        </div>
+
+        {/* Drop zone (shown when no images yet) */}
+        {imgs.length === 0 && (
+          <div
+            className={`drop-zone-grade ${drag ? "drag" : ""}`}
+            onClick={() => fileRef.current?.click()}
+            onDragOver={e => { e.preventDefault(); setDrag(true); }}
+            onDragLeave={() => setDrag(false)}
+            onDrop={e => { e.preventDefault(); setDrag(false); loadFiles(e.dataTransfer.files); }}
+          >
+            <div className="drop-icon">🖼</div>
+            <div className="drop-title">Drop screenshots here, or click to browse</div>
+            <div className="drop-sub">Upload multiple — Canvas, Blackboard, Brightspace, or any gradebook view</div>
+            <input ref={fileRef} type="file" accept="image/*" multiple style={{ display:"none" }}
+                   onChange={e => loadFiles(e.target.files)} />
+          </div>
+        )}
+
+        {/* Grid of thumbnails */}
+        {imgs.length > 0 && (
+          <div className="img-grid">
+            {imgs.map((img, i) => (
+              <div key={i} className="img-thumb">
+                <img src={img.preview} alt={`Screenshot ${i+1}`} />
+                <div className="thumb-overlay">
+                  <button className="thumb-remove" onClick={() => removeImg(i)}>✕</button>
+                </div>
+              </div>
+            ))}
+            {/* Add more button */}
+            <div className="add-thumb" onClick={() => fileRef.current?.click()}>
+              <div className="add-thumb-icon">＋</div>
+              <div>Add more</div>
+              <input ref={fileRef} type="file" accept="image/*" multiple style={{ display:"none" }}
+                     onChange={e => loadFiles(e.target.files)} />
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Notes */}
+      <div className="card">
+        <div className="card-title">📝 Grading Info (optional)</div>
+        <textarea className="field"
+          placeholder={"Help Claude understand your grading scheme. For example:\n• \"Homework 20%, Midterms 40%, Final 40%\"\n• \"The professor drops the lowest quiz\"\n• \"Lab reports are graded separately — ignore them\"\n• \"We're using a 10-point scale, not the default\""}
+          value={notes} onChange={e => setNotes(e.target.value)}
+        />
+      </div>
+
+      {/* Calculate / Reset */}
+      <div className="row">
+        <button className="calc-btn" onClick={calculate}
+                disabled={calculating || imgs.length === 0}>
+          {calculating
+            ? <><div className="spinner" />Calculating…</>
+            : <><span>🧮</span> Calculate My Grade</>
+          }
+        </button>
+        {(imgs.length > 0 || result) && !calculating && (
+          <button className="recalc-btn" onClick={reset}>↺ Start Over</button>
+        )}
+      </div>
+
+      {/* Result */}
+      {result && (
+        <>
+          {/* Hero grade card */}
+          {result.pct !== null && (
+            <div className="grade-big" style={{ background: `linear-gradient(135deg, #1e3a5f 0%, ${result.gradeColor} 100%)` }}>
+              <div className="grade-letter">{result.letter}</div>
+              <div>
+                <div className="grade-pct">{result.pct.toFixed(1)}%</div>
+                <div className="grade-label">Current Grade</div>
+                <div className="grade-meta">Based on {imgs.length} screenshot{imgs.length > 1 ? "s" : ""}</div>
+              </div>
+            </div>
+          )}
+
+          {/* Full breakdown */}
+          <div className="grade-result">
+            <div className="grade-result-header">
+              <span>📋</span> Full Grade Breakdown
+            </div>
+            <div className="grade-result-body"
+                 dangerouslySetInnerHTML={md(result.raw)} />
+          </div>
+        </>
+      )}
+
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+</script>
+</body>
+</html>
